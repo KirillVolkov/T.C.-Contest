@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">TGC</string>
     <string name="load_data">Load Data</string>
+    <string name="followers">Followers</string>
+    <string name="telegram_contest">Telegram March contest</string>
 </resources>

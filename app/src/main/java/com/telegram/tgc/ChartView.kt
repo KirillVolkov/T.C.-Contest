@@ -13,6 +13,7 @@ import com.telegram.tgc.chart.XAxisRenderer
 import com.telegram.tgc.model.ChartDataSet
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 
 class ChartView @JvmOverloads constructor(
@@ -21,6 +22,10 @@ class ChartView @JvmOverloads constructor(
     View.OnTouchListener {
 
     private val renderer: ChartRenderer = ChartRenderer(this)
+
+    fun setColorSet(colorSet: ColorSet) {
+        renderer.colorSet = colorSet
+    }
 
     fun setData(data: ChartDataSet) {
         val xs = data.columns.find { it.axisName == "x" }!!
@@ -62,7 +67,7 @@ class ChartView @JvmOverloads constructor(
     override fun onTouch(p0: View, event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                if (event.rawY > height * 4 / 5) {
+                if (event.y > height * 5 / 6) {
                     renderer.touchControl(event)
                 } else {
                     renderer.touchPointSelector(event)
@@ -94,6 +99,13 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
     @Volatile
     private var needRedraw = false
 
+    var colorSet = ColorSet(Color.LTGRAY, Color.WHITE, Color.LTGRAY, Color.BLACK)
+        set(value) {
+            field = value
+            setColors(field)
+            needRedraw = true
+        }
+
     private var windowWidth: Int = 0
     private var windowMinWidth = 0
     private var windowXPos: Int = 0
@@ -105,17 +117,16 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
     private val xAxisRenderer = XAxisRenderer()
 
     private val chartHeight get() = surface.height * 9 / 12f
-    private val controlHeight get() = surface.height / 6
     private val xAxisHeight get() = surface.height / 12
 
     private val controlPaint = Paint().apply {
         color = Color.LTGRAY
-        alpha = 50
+        alpha = 80
         isAntiAlias = true
     }
 
     private val borderControlPaint = Paint().apply {
-        color = Color.BLACK
+        color = Color.GRAY
         alpha = 50
         style = Paint.Style.STROKE
         strokeWidth = 4f
@@ -123,7 +134,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
     }
 
     private val stickControlPaint = Paint().apply {
-        color = Color.BLACK
+        color = Color.GRAY
         alpha = 50
         style = Paint.Style.STROKE
         strokeWidth = 16f
@@ -203,21 +214,21 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
     fun moveControl(event: MotionEvent) {
         when (controlEvent) {
             ControlEvent.RESIZE_LEFT -> {
-                val w = windowEndPos - windowXPos
-                windowWidth = if (w < windowMinWidth)
-                    windowMinWidth
-                else w
 
-                if (windowWidth + windowXPos < surface.width) {
-                    windowXPos = event.rawX.toInt()
+                windowXPos = event.rawX.toInt()
+                windowWidth = windowEndPos - windowXPos
+
+                if (windowWidth < windowMinWidth) {
+                    windowXPos += windowWidth - windowMinWidth
+                    windowWidth = windowMinWidth
                 }
-
             }
             ControlEvent.RESIZE_RIGHT -> {
-                val w = (event.rawX - windowXPos).toInt()
-                windowWidth = if (w < windowMinWidth)
-                    windowMinWidth
-                else w
+                windowWidth = (event.rawX - windowXPos).toInt()
+
+                if (windowWidth < windowMinWidth) {
+                    windowWidth = windowMinWidth
+                }
             }
             ControlEvent.MOVE -> {
                 if (touchOffset > 0) {
@@ -242,6 +253,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
             else -> {
             }
         }
+
         needRedraw = true
     }
 
@@ -253,7 +265,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
         drawRect( //Left Dimm Rect
             0f,
             chartHeight + xAxisHeight,
-            windowXPos.toFloat(),
+            windowXPos.toFloat() - borderControlPaint.strokeWidth,
             surface.height.toFloat(),
             controlPaint
         )
@@ -261,7 +273,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
         drawTouchControl()
 
         drawRect( //Right Dimm Rect
-            (windowXPos + windowWidth).toFloat(),
+            (windowXPos + windowWidth).toFloat() + stickControlPaint.strokeWidth - borderControlPaint.strokeWidth,
             chartHeight + xAxisHeight,
             (surface.width).toFloat(),
             surface.height.toFloat(),
@@ -352,7 +364,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
 
                 val canvas = surface.lockCanvas(null)
                 try {
-                    canvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR)
+                    canvas.drawColor(colorSet.lightColor)
                     levelsRenderer.draw(canvas)
                     renderers.forEach { it.draw(canvas) }
                     canvas.drawControl()
@@ -380,7 +392,7 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
     private fun initRenderers() {
         if (renderers.size > 0 && surface.width > 0) {
             renderers.forEach {
-                chartPointsAtOnce = it.data.size / 5
+                chartPointsAtOnce = (it.data.size / 6)
                 it.calcPaths(surface, maxY, chartPointsAtOnce)
             }
 
@@ -394,8 +406,18 @@ internal class ChartRenderer(private val surface: TextureView) : Thread() {
             )
             xAxisRenderer.xAxisData = renderers[0].data.map { it.x }
             xAxisRenderer.yPos = chartHeight
+            xAxisRenderer.pointsAtOnce = chartPointsAtOnce
             needRedraw = true
         }
+    }
+
+    private fun setColors(colorSet: ColorSet) {
+        controlPaint.color = colorSet.darkestColor
+        controlPaint.alpha = 80
+        levelsRenderer.color = colorSet.darkColor
+        toastRenderer.lineColor = colorSet.darkestColor
+        toastRenderer.dateTextColor = colorSet.toastTextColor
+        toastRenderer.toastColor = colorSet.lightColor
     }
 
     override fun start() {
@@ -427,7 +449,7 @@ class ChartPoint(
 }
 
 class XAxisPoint(
-    val timestamp: Long
+    timestamp: Long
 ) {
     var simpleDateString: String
     var dateString: String
@@ -443,6 +465,13 @@ class XAxisPoint(
         val formatter = SimpleDateFormat("EEE, MMM dd", Locale.US)
     }
 }
+
+class ColorSet(
+    val darkColor: Int,
+    val lightColor: Int,
+    val darkestColor: Int,
+    val toastTextColor: Int
+)
 
 class YAxisPoint(
     val value: Long

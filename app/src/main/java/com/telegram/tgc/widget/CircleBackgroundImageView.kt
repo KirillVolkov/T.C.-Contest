@@ -47,6 +47,8 @@ class CircleBackgroundImageView @JvmOverloads constructor(
             val radius = if (height < width) height / 2f else width / 2f
             canvas?.drawCircle(width / 2f, height / 2f, radius - 2, paint)
         }
-        super.onDraw(canvas)
+        if(checked) {
+            super.onDraw(canvas)
+        }
     }
 }

@@ -18,6 +18,8 @@ class XAxisRenderer : IChartRenderer {
 
     var yPos = 0f
 
+    var pointsAtOnce = 0
+
     val paint = Paint().apply {
         textSize = 32f
         color = Color.LTGRAY
@@ -25,16 +27,19 @@ class XAxisRenderer : IChartRenderer {
     }
 
     override fun draw(canvas: Canvas) {
-
+        val e = pointsAtOnce / scale
         val step = bounds.width() / (xAxisData.size)
         xAxisData.forEachIndexed { index, xAxisPoint ->
-            if (index % (3 / scale).roundToInt() == 2)
-                canvas.drawText(
-                    xAxisPoint.simpleDateString,
-                    index * step - paint.measureText(xAxisPoint.simpleDateString) / 2 + offset,
-                    yPos + 32f * 2,
-                    paint
-                )
+            when (index % (e / 6).roundToInt()) {
+                2 -> {
+                    canvas.drawText(
+                        xAxisPoint.simpleDateString,
+                        index * step - paint.measureText(xAxisPoint.simpleDateString) / 2 + offset,
+                        yPos + 32f * 2,
+                        paint.apply { alpha = 255 }
+                    )
+                }
+            }
         }
     }
 }

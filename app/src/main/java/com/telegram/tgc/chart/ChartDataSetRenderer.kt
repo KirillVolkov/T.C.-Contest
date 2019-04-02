@@ -69,6 +69,7 @@ class ChartDataSetRenderer private constructor() : IChartRenderer {
             chartPath.transform(translateMatrix)
 
             maxFrameY = calcMaxFrameY(offset, selectedRange)
+           // println("offset = ${currOffset} range = ${selectedRange * chartBounds.width()} width = ${chartBounds.width()} percentFill = ${(offset + selectedRange)}")
             return maxFrameY
         } else {
             return 0L
@@ -77,10 +78,8 @@ class ChartDataSetRenderer private constructor() : IChartRenderer {
 
     fun getPointNearPosition(xPos: Float, height: Float): ChartSelectedPoint {
         val actualX = Math.abs(currOffset) + xPos
-        val index = (data.size * actualX / chartBounds.width()).roundToInt()
-        if (index >= data.size) {
-            println()
-        }
+        val index = ((data.size-1) * actualX / chartBounds.width()).roundToInt()
+
         val p = data[index]
         return ChartSelectedPoint(
             PointF(data.indexOf(p) * step * currScale + currOffset, p.realYPercent * currYScale * height - currYOffset),
@@ -134,6 +133,7 @@ class ChartDataSetRenderer private constructor() : IChartRenderer {
     }
 
     var step = 0f
+    var magicNumber = 3.26315789f
 
     fun calcPaths(surface: TextureView, max: Long, pointsAtOnce: Int) {
         data.forEach {
@@ -143,16 +143,17 @@ class ChartDataSetRenderer private constructor() : IChartRenderer {
 
         controlPath.moveTo(
             0f,
-            surface.height * 1 / 6 * data[0].realYPercent + surface.height * 5 / 6
+            surface.height * 1 / 6 * data[0].realYPercent + surface.height * 5 / 6 * 4
         )
         for (i in 1 until data.size) {
             controlPath.lineTo(
                 ((step * i)),
-                surface.height * 1 / 6 * data[i].realYPercent + surface.height * 5 / 6
+                surface.height * 1 / 6 * data[i].realYPercent + surface.height * 5 / 6 + 4
             )
         }
 
-        step = (surface.width.toFloat()) / (pointsAtOnce - 1)
+        step =
+            (surface.width.toFloat()) / (pointsAtOnce - (pointsAtOnce / magicNumber - data.size % pointsAtOnce))
         chartPath.moveTo(
             0f,
             data[0].realYPercent * surface.height * 9 / 12
@@ -163,8 +164,7 @@ class ChartDataSetRenderer private constructor() : IChartRenderer {
                 data[i].realYPercent * surface.height * 9 / 12
             )
         }
-        chartPath.computeBounds(chartBounds, true)
-        println(chartBounds)
+        chartPath.computeBounds(chartBounds, false)
     }
 
     companion object {

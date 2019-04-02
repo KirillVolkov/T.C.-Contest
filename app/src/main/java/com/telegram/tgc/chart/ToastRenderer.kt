@@ -29,8 +29,16 @@ class ToastRenderer : IChartRenderer {
         items = emptyList()
     }
 
+    var dateTextColor: Int = Color.BLACK
+    var toastColor: Int = Color.WHITE
+    var lineColor: Int = Color.LTGRAY
+        set(value) {
+            field = value
+            toastPaint.setShadowLayer(16f, 0f, 0f, value)
+        }
+
     private val paint = Paint().apply {
-        color = Color.BLACK
+        color = dateTextColor
         style = Paint.Style.STROKE
         strokeWidth = 4f
         textSize = 48f
@@ -40,12 +48,12 @@ class ToastRenderer : IChartRenderer {
     private val smallText = 32f
 
     private val paintFill = Paint().apply {
-        color = Color.WHITE
+        color = toastColor
         style = Paint.Style.FILL
     }
 
     private val toastPaint = Paint().apply {
-        color = Color.WHITE
+        color = toastColor
         style = Paint.Style.FILL
         isAntiAlias = true
         setShadowLayer(16f, 0f, 0f, Color.LTGRAY)
@@ -60,7 +68,9 @@ class ToastRenderer : IChartRenderer {
         if (position > 0 && items.isNotEmpty()) {
             paint.style = Paint.Style.STROKE
             val pos = items[0].point.x
-            canvas.drawLine(pos, 0f, pos, canvas.height * 4 / 5f, paint.apply { color = Color.LTGRAY })
+            paint.color = lineColor
+            paintFill.color = toastColor
+            canvas.drawLine(pos, 0f, pos, canvas.height * 9 / 12f - 40, paint)
             items.forEach {
                 canvas.drawCircle(pos, it.point.y, 10f, paintFill)
                 canvas.drawCircle(pos, it.point.y, 10f, paint.apply {
@@ -74,7 +84,8 @@ class ToastRenderer : IChartRenderer {
     private fun drawToast(canvas: Canvas, x: Float, y: Float) {
         paint.style = Paint.Style.FILL
         paint.textSize = smallText
-        paint.color = Color.BLACK
+        paint.color = dateTextColor
+        toastPaint.color = toastColor
         val w = getToastWidth()
         val rect = RectF(x - w / 4, y, x + w * 3 / 4, y + getToastHeight())
         canvas.drawRoundRect(rect, 16f, 16f, toastPaint)

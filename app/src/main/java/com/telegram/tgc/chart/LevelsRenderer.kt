@@ -5,22 +5,20 @@ import android.graphics.Color
 import android.graphics.Paint
 import com.telegram.tgc.chart.base.IChartRenderer
 
-class LevelsRenderer private constructor() : IChartRenderer{
+class LevelsRenderer private constructor() : IChartRenderer {
 
     private var currMaxY = 0L
     private var animationState: Float = 1f
-
     private var width: Int = 0
     private var height: Float = 0f
-
     private val horizontalOffset = 20f
-
     private var step = 0f
+    var color: Int = Color.LTGRAY
 
     private val levelPaint = Paint().apply {
-        color = Color.LTGRAY
+        color = this@LevelsRenderer.color
         isAntiAlias = true
-        strokeWidth = 2f
+        strokeWidth = 4f
         textSize = 20f
     }
 
@@ -40,10 +38,8 @@ class LevelsRenderer private constructor() : IChartRenderer{
     }
 
     override fun draw(canvas: Canvas) {
-        //if (animationState < 1) {
-            canvas.drawLevel(0, (this@LevelsRenderer.height), 255)
-            canvas.drawLevels(currMaxY)
-      //  }
+        canvas.drawLevel(0, (this@LevelsRenderer.height))
+        canvas.drawLevels(currMaxY)
     }
 
     /**
@@ -55,8 +51,7 @@ class LevelsRenderer private constructor() : IChartRenderer{
         for (i in 1..5) {
             drawLevel(
                 stepByY * i,
-                (this@LevelsRenderer.height) - (step * i),
-                (animationState * 255).toInt()
+                (this@LevelsRenderer.height) - (step * i)
             )
         }
     }
@@ -66,10 +61,9 @@ class LevelsRenderer private constructor() : IChartRenderer{
      */
     private fun Canvas.drawLevel(
         value: Long,
-        level: Float,
-        alpha: Int
+        level: Float
     ) {
-       // levelPaint.alpha = alpha
+        levelPaint.color = Color.LTGRAY
         drawText(
             value.toString(),
             horizontalOffset,
@@ -77,6 +71,7 @@ class LevelsRenderer private constructor() : IChartRenderer{
             levelPaint
         )
 
+        levelPaint.color = color
         drawLine(
             horizontalOffset,
             level + textHeight,
@@ -87,16 +82,12 @@ class LevelsRenderer private constructor() : IChartRenderer{
     }
 
     companion object {
-
         const val textHeight = 40
-
         fun init(width: Int, height: Float): LevelsRenderer {
             val levelsRenderer = LevelsRenderer()
             levelsRenderer.width = width
             levelsRenderer.height = height - textHeight * 2
-
             levelsRenderer.step = (levelsRenderer.height - textHeight) / 5f
-
             return levelsRenderer
         }
     }

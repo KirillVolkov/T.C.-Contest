@@ -10,6 +10,8 @@
     <com.telegram.tgc.widget.CircleBackgroundImageView
             android:id="@+id/iv_checkmark"
             android:layout_width="24dp"
+            android:src="@drawable/checkmark"
+            android:scaleType="center"
             tools:background="@drawable/tools_circle"
             app:circle_color="@android:color/holo_red_light"
             android:layout_height="24dp"/>
